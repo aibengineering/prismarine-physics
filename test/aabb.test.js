@@ -82,19 +82,21 @@ describe('AABB collision offsets', () => {
     })
   }
 
-  it('clamps the recorded 0.3005 westbound reconstruction', () => {
-    const riser = new AABB(3, 279, 485, 4, 280, 486)
-    // This 0.601-wide player box is the exact failing frame from the width
-    // sweep. The stock-width behavior is covered by the live course matrix.
-    const player = new AABB(
-      3.9999999999999996,
-      279.42,
-      485.38,
-      4.600999999999999,
-      281.22,
-      485.981
+  it('clamps contact reconstructed with sub-epsilon floating-point overlap', () => {
+    const obstacle = new AABB(3, 0, 0, 4, 1, 1)
+    const halfWidth = 0.3005
+    const reconstructedMinX = (obstacle.maxX + halfWidth) - halfWidth
+    const other = new AABB(
+      reconstructedMinX,
+      0.25,
+      0.25,
+      reconstructedMinX + 1,
+      0.75,
+      0.75
     )
 
-    assert.strictEqual(riser.computeOffsetX(player, -0.022615), 0)
+    assert.ok(reconstructedMinX < obstacle.maxX)
+    assert.ok(obstacle.maxX - reconstructedMinX < subEpsilonOverlap)
+    assert.strictEqual(obstacle.computeOffsetX(other, -requestedMotion), 0)
   })
 })
