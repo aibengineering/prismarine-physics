@@ -70,6 +70,15 @@ describe('AABB collision offsets', () => {
         assert.strictEqual(block[axis.method](movingBox(axis.index, 'negative', -subEpsilonOverlap), -requestedMotion), -requestedMotion)
         assert.strictEqual(block[axis.method](movingBox(axis.index, 'positive', -subEpsilonOverlap), requestedMotion), requestedMotion)
       })
+
+      it('does not collide when the boxes only touch on a perpendicular axis', () => {
+        const other = movingBox(axis.index, 'positive', 0)
+        const tangentAxis = axes[(axis.index + 1) % axes.length]
+        other[`min${tangentAxis.name}`] = 1
+        other[`max${tangentAxis.name}`] = 2
+
+        assert.strictEqual(block[axis.method](other, -requestedMotion), -requestedMotion)
+      })
     })
   }
 
