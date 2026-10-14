@@ -66,6 +66,9 @@ See `examples/` for more.
 - playerState : instance of the PlayerState class
 - world : interface with a function `getBlock(position)` returning the prismarine-block at the given position
 
+#### itemUseSlowdown
+- (boolean, default `false`) when true, a player using an item (`isUsingItem`) moves with both impulses scaled by `usingItemSpeedFactor` (0.2) and cannot sprint unless in water, as the vanilla client does
+
 ### PlayerState
 
 A player state is an object containing the properties:
@@ -87,6 +90,7 @@ Read / Write properties:
 Read only properties:
 - yaw : (float) the yaw angle, in radians, of the player entity
 - pitch: (float) the pitch angle, in radians, of the player entity
+- isUsingItem : (boolean) is the player using an item, such as a raised shield? Read from `bot.usingHeldItem`; ignored while riding
 - control : (object) control states vector with properties:
   - forward
   - back

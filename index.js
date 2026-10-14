@@ -66,6 +66,12 @@ function Physics (mcData, world) {
     playerSpeed: 0.1,
     sprintSpeed: 0.3,
     sneakSpeed: 0.3,
+    // The vanilla client scales both movement impulses while an item is in use
+    // (shield, food, bow) and will not sprint then except under water
+    // (LocalPlayer.USING_ITEM_SPEED_FACTOR, shouldStopSprinting). Off by
+    // default so existing bots keep moving as they always have.
+    itemUseSlowdown: false,
+    usingItemSpeedFactor: 0.2,
     stepHeight: 0.6, // how much height can the bot step on without jump
     negligeableVelocity: 0.003, // actually 0.005 for 1.8, but seems fine
     soulsandSpeed: 0.4,
@@ -555,7 +561,7 @@ function Physics (mcData, world) {
         // Client-side sprinting (don't rely on server-side sprinting)
         // setSprinting in LivingEntity.java
         playerSpeedAttribute = attribute.deleteAttributeModifier(playerSpeedAttribute, physics.sprintingUUID) // always delete sprinting (if it exists)
-        if (entity.control.sprint) {
+        if (isSprinting(entity)) {
           if (!attribute.checkAttributeModifier(playerSpeedAttribute, physics.sprintingUUID)) {
             playerSpeedAttribute = attribute.addAttributeModifier(playerSpeedAttribute, {
               uuid: physics.sprintingUUID,
@@ -573,7 +579,7 @@ function Physics (mcData, world) {
         acceleration = physics.airborneAcceleration
         inertia = physics.airborneInertia
 
-        if (entity.control.sprint) {
+        if (isSprinting(entity)) {
           const airSprintFactor = physics.airborneAcceleration * 0.3
           acceleration += airSprintFactor
         }
@@ -702,6 +708,15 @@ function Physics (mcData, world) {
     return isInWater
   }
 
+  function slowedByItemUse (entity) {
+    return physics.itemUseSlowdown && entity.isUsingItem === true
+  }
+
+  // Sprint is a control here, not a state, so item use masks it each tick.
+  function isSprinting (entity) {
+    return entity.control.sprint && !(slowedByItemUse(entity) && !entity.isInWater)
+  }
+
   physics.simulatePlayer = (entity, world) => {
     const vel = entity.vel
     const pos = entity.pos
@@ -728,7 +743,7 @@ function Physics (mcData, world) {
         if (entity.jumpBoost > 0) {
           vel.y += 0.1 * entity.jumpBoost
         }
-        if (entity.control.sprint) {
+        if (isSprinting(entity)) {
           const yaw = Math.PI - entity.yaw
           vel.x -= Math.sin(yaw) * 0.2
           vel.z += Math.cos(yaw) * 0.2
@@ -742,6 +757,11 @@ function Physics (mcData, world) {
 
     let strafe = (entity.control.right - entity.control.left) * 0.98
     let forward = (entity.control.forward - entity.control.back) * 0.98
+
+    if (slowedByItemUse(entity)) {
+      strafe *= physics.usingItemSpeedFactor
+      forward *= physics.usingItemSpeedFactor
+    }
 
     if (entity.control.sneak) {
       strafe *= physics.sneakSpeed
@@ -824,6 +844,7 @@ class PlayerState {
     this.yaw = bot.entity.yaw
     this.pitch = bot.entity.pitch
     this.control = control
+    this.isUsingItem = bot.usingHeldItem === true && !bot.vehicle
 
     // effects
     const effects = bot.entity.effects
