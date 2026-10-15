@@ -43,11 +43,11 @@ function fakePlayer ({ usingHeldItem = false, vehicle = null } = {}) {
 }
 
 // Blocks per second once walking or sprinting has reached its steady speed.
-function steadySpeed ({ itemUseSlowdown, usingHeldItem, sprint = false, vehicle = null }) {
+function steadySpeed ({ itemUseSlowdown, usingHeldItem, sprint = false, sneak = false, vehicle = null }) {
   const physics = Physics(mcData, fakeWorld)
   physics.itemUseSlowdown = itemUseSlowdown
   const player = fakePlayer({ usingHeldItem, vehicle })
-  const controls = { forward: true, back: false, left: false, right: false, jump: false, sprint, sneak: false }
+  const controls = { forward: true, back: false, left: false, right: false, jump: false, sprint, sneak }
   for (let tick = 0; tick < 40; tick++) physics.simulatePlayer(new PlayerState(player, controls), fakeWorld).apply(player)
   const start = player.entity.position.clone()
   for (let tick = 0; tick < 20; tick++) physics.simulatePlayer(new PlayerState(player, controls), fakeWorld).apply(player)
@@ -68,6 +68,11 @@ describe('Item use movement', () => {
   it('does not sprint while an item is in use', () => {
     expect(steadySpeed({ itemUseSlowdown: true, usingHeldItem: true, sprint: true })).toBeCloseTo(0.863, 2)
     expect(steadySpeed({ itemUseSlowdown: true, usingHeldItem: false, sprint: true })).toBeCloseTo(5.612, 2)
+  })
+
+  it('multiplies with sneaking, as both scale the same impulses', () => {
+    expect(steadySpeed({ itemUseSlowdown: true, usingHeldItem: false, sneak: true })).toBeCloseTo(1.295, 2)
+    expect(steadySpeed({ itemUseSlowdown: true, usingHeldItem: true, sneak: true })).toBeCloseTo(0.259, 2)
   })
 
   it('ignores item use while riding', () => {
